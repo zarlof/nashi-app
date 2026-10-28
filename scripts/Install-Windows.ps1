@@ -2,7 +2,7 @@
 param(
     [string]$Destination,
     [switch]$Build,
-    [string]$Dotnet = 'dotnet',
+    [string]$Dotnet,
     [switch]$NoShortcuts
 )
 $ErrorActionPreference = 'Stop'
@@ -10,6 +10,10 @@ $repository = Split-Path $PSScriptRoot -Parent
 if (-not $Destination) { $Destination = Join-Path (Split-Path $repository -Parent) 'Nashi' }
 $Destination = [IO.Path]::GetFullPath($Destination)
 if ($Build) {
+    if (-not $Dotnet) {
+        $localSdk = Join-Path $env:LOCALAPPDATA 'ZarlofDevTools\dotnet\dotnet.exe'
+        $Dotnet = if (Test-Path -LiteralPath $localSdk) { $localSdk } else { 'dotnet' }
+    }
     & $Dotnet publish (Join-Path $repository 'windows\Nashi.Windows') -c Release -o $Destination -p:RestoreLockedMode=true
     if ($LASTEXITCODE -ne 0) { throw 'Nashi Windows build failed.' }
 }
