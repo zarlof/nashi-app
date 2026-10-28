@@ -15,6 +15,10 @@ public partial class App:Application
         }
         DispatcherUnhandledException+=(_,error)=>{var folder=Environment.GetEnvironmentVariable("NASHI_SMOKE_DIRECTORY");if(folder is not null){Directory.CreateDirectory(folder);File.WriteAllText(Path.Combine(folder,"dispatcher-error.txt"),error.Exception.ToString());error.Handled=true;Shutdown(1);}};
         base.OnStartup(e);
+        if(e.Args.Length==1&&e.Args[0]=="--setup-tools")
+        {
+            ShutdownMode=ShutdownMode.OnExplicitShutdown;_ = SetupToolsAsync();return;
+        }
         if(e.Args.Contains("--smoke-test-interactions"))
         {
             IsSmokeTest=true;ShutdownMode=ShutdownMode.OnExplicitShutdown;
@@ -91,6 +95,26 @@ public partial class App:Application
         try{await instance!.Notify(paths);Shutdown(0);}catch(Exception error)when(error is IOException or OperationCanceledException or UnauthorizedAccessException){UseSavedLanguage();MessageBox.Show(L10n.Text("Nashi is already running but is still starting. Open it from the system tray or try again in a moment."),"Nashi");Shutdown(1);}
     }
     protected override void OnExit(ExitEventArgs e){windowManagement?.Dispose();Feedback.Stop();PdfRasterDocument.Shutdown();base.OnExit(e);}
+    private async Task SetupToolsAsync()
+    {
+        var root=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Nashi");
+        Directory.CreateDirectory(root);
+        var report=Path.Combine(root,"tool-setup.json");
+        void Status(string status,string message,double fraction=0)=>File.WriteAllText(report,System.Text.Json.JsonSerializer.Serialize(new{status,message,fraction}));
+        try
+        {
+            Status("installing","Preparing verified Windows tools");
+            var progress=new Progress<Nashi.Core.OperationProgress>(p=>Status("installing",p.Label,p.Fraction??0));
+            var tools=Path.Combine(root,"Tools");
+            await new Nashi.Core.Toolchain(Path.Combine(tools,"v1")).InstallAsync(progress);
+            await new OfficeRuntime(tools).InstallAsync(progress,CancellationToken.None);
+            await new Nashi.Core.MetadataService(tools).InstallAsync(progress,CancellationToken.None);
+            // Drain queued progress before writing the terminal result.
+            await Dispatcher.InvokeAsync(()=>{},System.Windows.Threading.DispatcherPriority.Background);
+            Status("ready","Windows media, Office and metadata tools are ready",1);Shutdown(0);
+        }
+        catch(Exception error){Status("error",error.Message);Shutdown(1);}
+    }
     private async Task InstallUpdateAsync()
     {
         try

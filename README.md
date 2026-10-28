@@ -1,5 +1,7 @@
 <p align="center"><img src="Resources/Brand/NashiIcon.png" width="128" alt="Nashi"></p>
 <h1 align="center">Nashi</h1>
+
+**zarlof Windows fork:** [Türkçe kurulum, Dosya Gezgini entegrasyonu ve geliştirme notları](ZARLOF-WINDOWS.md). Original project and credits are retained below.
 <p align="center">Your files, a little sweeter. · Dosyaların için tatlı bir kolaylık.</p>
 
 [English guide](https://orkunisitmak.github.io/nashi-app/) · [Türkçe](https://orkunisitmak.github.io/nashi-app/tr/) · [Latest release](https://github.com/orkunisitmak/nashi-app/releases/latest) · [Security](SECURITY.md)
